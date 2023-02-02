@@ -1,0 +1,17 @@
+version: '3.5'
+
+volumes:
+  s3-data:
+  pg-data:
+  neo4j-data:
+  es-data:
+  redis-data:
+  redis-etc:
+  ml-api-data:
+  ml-api-corpus:
+  data-pipelines-tmp:
+  data-pipelines-rendered-config:
+
+networks:
+  app-net:
+    name: "${COMPOSE_PROJECT_NAME:-gc}-network"

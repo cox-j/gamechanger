@@ -1,0 +1,92 @@
+.* /login .*
+.* /login/callback .*
+.* /login/fail .*
+.* /api/setUserSession .*
+.* /api/auth/token .*
+.* /api/gamechanger/documentSearch/download .*
+.* /api/gamechanger/shortenSearchURL .*
+.* /api/gamechanger/convertTinyURL .*
+.* /api/gamechanger/dataTracker/getTrackedData .*
+.* /api/gamechanger/dataTracker/getBrowsingLibrary .*
+.* /api/gamechanger/dataTracker/getTrackedSource .*
+.* /api/gamechanger/getCrawlerMetadata .*
+.* /api/gamechanger/getDocumentProperties .*
+.* /api/gamechanger/v2/data/storage/download .*
+.* /api/gamechanger/thumbnailDownload .*
+.* /api/gamechanger/assist/getDocumentsToAnnotate .*
+.* /api/gamechanger/assist/saveDocumentAnnotationsPOST .*
+.* /api/gamechanger/getThumbnail .*
+.* /api/gamechanger/responsibilities/get .*
+.* /api/gamechanger/responsibilities/getDoc .*
+.* /api/gamechanger/responsibilities/getDocLink .*
+.* /api/gamechanger/responsibilities/getDocTitles .*
+.* /api/gamechanger/responsibilities/setRejectionStatus .*
+.* /api/gamechanger/responsibilities/updateResponsibility .*
+.* /api/gamechanger/responsibilities/updateResponsibilityReport .*
+.* /api/gamechanger/responsibilities/getOtherEntityFilterList .*
+.* /api/gamechanger/responsibilities/storeReport .*
+.* /api/gamechanger/responsibilities/getUpdates .*
+.* /api/gamechanger/getNotifications .*
+.* /api/gamechanger/megamenu/links .*
+.* /api/gamechanger/tutorialOverlay .*
+.* /api/gamechanger/user/exportHistory .*
+.* /api/gamechanger/user/exportHistory/:historyId .*
+.* /api/gamechanger/favorites/document .*
+.* /api/gamechanger/favorites/search .*
+.* /api/gamechanger/favorites/topic .*
+.* /api/gamechanger/favorites/organization .*
+.* /api/gamechanger/favorites/group .*
+.* /api/gamechanger/favorites/addToGroup .*
+.* /api/gamechanger/favorites/removeFromGroup .*
+.* /api/gamechanger/clearFavoriteSearchUpdate .*
+.* /api/gamechanger/trending/trendingSearches .*
+.* /api/gamechanger/trending/getTrendingBlacklist .*
+.* /api/gamechanger/trending/getWeeklySearchCount .*
+.* /api/gamechanger/user/getUserData .*
+.* /api/gamechanger/getUserSettings .*
+.* /api/gamechanger/setUserBetaStatus .*
+.* /api/gamechanger/user/submitUserInfo .*
+.* /api/gamechanger/getInternalUsers .*
+.* /api/gamechanger/sendFeedback .*
+.* /api/gamechanger/sendClassificationAlert .*
+.* /api/gamechanger/clearDashboardNotification .*
+.* /api/gamechanger/updateUserAPIRequestLimit .*
+.* /api/gamechanger/getRecentSearches .*
+.* /api/gamechanger/textSuggestion .*
+.* /api/gamechanger/createAPIKeyRequest .*
+.* /api/gamechanger/getAppStats .*
+.* /api/gamechanger/getRecentlyOpenedDocs .*
+.* /api/gamechanger/appSettings/combinedSearch .*
+.* /api/gamechanger/appSettings/intelligentAnswers .*
+.* /api/gamechanger/appSettings/entitySearch .*
+.* /api/gamechanger/appSettings/userFeedback .*
+.* /api/gamechanger/appSettings/jiraFeedback .*
+.* /api/gamechanger/appSettings/topicSearch .*
+.* /api/gamechanger/appSettings/ltr .*
+.* /api/gamechanger/sendFeedback/intelligentSearch .*
+.* /api/gamechanger/sendFeedback/QA .*
+.* /api/gamechanger/sendFeedback/getFeedbackData .*
+.* /api/gamechanger/sendFeedback/jira .*
+.* /api/matomo .*
+.* /api/matomo/user .*
+.* /api/tutorialOverlay .*
+.* /api/userAppVersion .*
+.* /api/gamechanger/modular/getCloneMeta .*
+.* /api/gamechanger/modular/getAllCloneMeta .*
+.* /api/gamechanger/modular/search .*
+.* /api/gamechanger/modular/callSearchFunction .*
+.* /api/gamechanger/modular/export .*
+.* /api/gamechanger/modular/graphSearch .*
+.* /api/gamechanger/modular/callGraphFunction .*
+.* /api/gamechanger/modular/querySuggester .*
+.* /api/gamechanger/modular/docFetcher .*
+.* /api/gamechanger/sendFrontendError .*
+.*/api/gamechanger/getCrawlerSeals .*
+.*/api/gamechanger/getOrgSeals .*
+.*/api/gamechanger/getOrgImageOverrideURLs .*
+.*/api/gamechanger/saveOrgImageOverrideURL .*
+.* /api/gamechanger/aboutGC/getFAQ .*
+.*/api/gamechanger/getElasticSearchIndex .*
+.*/api/gamechanger/getHomepageEditorData .*
+.*/api/gamechanger/analyticsTools/compareDocument .*
+

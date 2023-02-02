@@ -1,0 +1,416 @@
+services:
+  _s3_server_wait_until_ready:
+    image: "${GC_S3_CLIENT_IMAGE}"
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        until curl -fs --connect-timeout 5 s3-server:9000/minio/health/live; do
+          >&2 echo "S3 Server is unavailable - sleeping"
+          sleep 5
+        done
+    networks:
+      - app-net
+
+  _redis_wait_until_ready:
+    image: "${GC_REDIS_IMAGE}"
+    user: root
+    depends_on:
+      - redis
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        until redis-cli -h redis ping &>/dev/null ; do
+          >&2 echo "Redis is unavailable - sleeping"
+          sleep 5
+        done
+    networks:
+      - app-net
+
+  _web_wait_until_ready:
+    image: "${GC_WEB_IMAGE}"
+    depends_on:
+      - redis
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        until curl -fs --connect-timeout 5 web:8990/ &>/dev/null ; do
+          >&2 echo "Web frontend/backend is unavailable - sleeping"
+          sleep 5
+        done
+    networks:
+      - app-net
+
+  _ml_api_wait_until_ready:
+    image: "${GC_ML_API_IMAGE}"
+    depends_on:
+      - redis
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        until curl -fs --connect-timeout 10 ml-api:5000/ &>/dev/null ; do
+          >&2 echo "ML API is unavailable - sleeping"
+          sleep 10
+        done
+    networks:
+      - app-net
+
+  _postgres_wait_until_ready:
+    image: "${GC_POSTGRES_IMAGE}"
+    depends_on:
+      - postgres
+    environment:
+      PGPASSWORD: password
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: postgres
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        until psql -c '\q'; do
+          >&2 echo "Postgres is unavailable - sleeping"
+          sleep 5
+        done
+    networks:
+      - app-net
+
+  _elasticsearch_wait_until_ready:
+    image: "${GC_ELASTICSEARCH_IMAGE}"
+    container_name: "${COMPOSE_PROJECT_NAME:-gc}-elasticsearch"
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        until curl -fs --connect-timeout 10 elasticsearch:9200/ &>/dev/null ; do
+          >&2 echo "ElasticSearch is unavailable - sleeping"
+          sleep 10
+        done
+    networks:
+      - app-net
+
+  _postgres_config_step_4_seed_app_tables:
+    image: "${GC_POSTGRES_IMAGE}"
+    depends_on:
+      - postgres
+    environment:
+      PGPASSWORD: password
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: postgres
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "pipefail"
+      - "-o"
+      - "errexit"
+      - "-o"
+      - "nounset"
+      - "-c"
+    volumes:
+      - "./deploy/build/gamechanger-web/backend/node_app/init/:/tmp/sql/:Z"
+    command:
+      - |
+        psql -f /tmp/sql/pop_mini_RE.sql
+        psql -f /tmp/sql/create_admins.sql
+    networks:
+      - app-net
+
+  _postgres_config_step_3_setup_um_schema:
+    image: "${GC_POSTGRES_IMAGE}"
+    depends_on:
+      - postgres
+    environment:
+      PGPASSWORD: password
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: postgres
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "pipefail"
+      - "-o"
+      - "errexit"
+      - "-o"
+      - "nounset"
+      - "-c"
+    volumes:
+      - "./deploy/build/gamechanger-web/backend/node_app/init/:/tmp/sql/:Z"
+    command:
+      - |
+        psql -f /tmp/sql/create_um_tables.sql
+    networks:
+      - app-net
+
+  _postgres_config_step_2_setup_data_schema:
+    image: "${GC_DATA_PIPELINES_IMAGE}"
+    volumes:
+      - "data-pipelines-rendered-config:/opt/app-root/src/configuration/rendered/:Z"
+    command:
+      - "/bin/bash"
+      - "-o"
+      - "pipefail"
+      - "-o"
+      - "errexit"
+      - "-o"
+      - "nounset"
+      - "-c"
+      - |
+        python -m configuration configure-backend
+    networks:
+      - app-net
+
+  _postgres_config_step_1_setup_web_schema:
+    image: "${GC_WEB_IMAGE}"
+    environment:
+      POSTGRES_HOST_GAME_CHANGER: postgres
+      POSTGRES_HOST_GC_ORCHESTRATION: postgres
+      POSTGRES_DB_GAME_CHANGER: postgres
+      POSTGRES_DB_GC_ORCHESTRATION: postgres
+      POSTGRES_USER_GAME_CHANGER: postgres
+      POSTGRES_USER_GC_ORCHESTRATION: postgres
+      POSTGRES_PASSWORD_GAME_CHANGER: password
+      POSTGRES_PASSWORD_GC_ORCHESTRATION: password
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "pipefail"
+      - "-o"
+      - "errexit"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        _urlenc_pass=$$(2>/dev/null node -e "console.log(encodeURIComponent(process.env.POSTGRES_PASSWORD_GAME_CHANGER))")
+        sequelize db:migrate \
+          --options-path ./.sequelize-game_changer \
+          --env game_changer \
+          --url "postgresql://$${POSTGRES_USER_GAME_CHANGER}:$${_urlenc_pass}@$${POSTGRES_HOST_GAME_CHANGER}/$${POSTGRES_DB_GAME_CHANGER}"
+
+        _urlenc_pass=$$(2>/dev/null node -e "console.log(encodeURIComponent(process.env.POSTGRES_PASSWORD_GC_ORCHESTRATION))")
+        sequelize db:migrate \
+          --options-path ./.sequelize-gc-orchestration \
+          --env gc_orchestration \
+          --url "postgresql://$${POSTGRES_USER_GC_ORCHESTRATION}:$${_urlenc_pass}@$${POSTGRES_HOST_GC_ORCHESTRATION}/$${POSTGRES_DB_GC_ORCHESTRATION}"
+    networks:
+      - app-net
+
+  _ensure_s3_server_bucket_exists:
+    image: "${GC_S3_CLIENT_IMAGE}"
+    environment:
+      BUCKET_NAME: advana-data-zone
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "pipefail"
+      - "-o"
+      - "errexit"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        mc config host add s3-server http://s3-server:9000 dev-access-key dev-secret-key;
+        (mc ls s3-server | grep -q $$BUCKET_NAME) || mc mb s3-server/"$${BUCKET_NAME}"
+    networks:
+      - app-net
+  
+  _update_primary_clone_config:
+    image: "${GC_DATA_PIPELINES_IMAGE}"
+    user: root
+    environment:
+      CLONE_CONFIG_MAIN_VIEW_MODULE: "'default/defaultMainViewHandler'"
+      CLONE_CONFIG_S3_BUCKET: "'advana-data-zone/bronze'"
+      PGPASSWORD: password
+      PGHOST: postgres
+      PGUSER: postgres
+      PGDATABASE: postgres
+    volumes:
+      - "./deploy/build/gamechanger-web/backend/node_app/init/:/tmp/scripts/:Z"
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "pipefail"
+      - "-o"
+      - "errexit"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        bash /tmp/scripts/dev/update_main_clone_config.sh > /tmp/update.sql
+        psql -f /tmp/update.sql
+    networks:
+      - app-net
+  
+  _ensure_and_populate_basic_es_indices:
+    image: "${GC_DATA_PIPELINES_IMAGE}"
+    user: root
+    volumes:
+      - "data-pipelines-rendered-config:/opt/app-root/src/configuration/rendered/:Z"
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "pipefail"
+      - "-o"
+      - "errexit"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        python -m dataPipelines.gc_elasticsearch_publisher setup-index \
+          -i search_history_original \
+          -a search_history \
+          -m ./configuration/elasticsearch-config/local-search_history.json
+
+        python -m dataPipelines.gc_elasticsearch_publisher setup-index \
+          -i gamechanger_original \
+          -a gamechanger \
+          -m ./configuration/elasticsearch-config/local.json
+
+        python -m dataPipelines.gc_elasticsearch_publisher entity-insert \
+          -i entities_original \
+          -a entities \
+          -m /opt/app-root/src/configuration/elasticsearch-config/local-entities.json
+
+    networks:
+      - app-net
+
+
+  _data_pipelines_cmd:
+    image: "${GC_DATA_PIPELINES_IMAGE}"
+    user: root
+    volumes:
+      - "data-pipelines-rendered-config:/opt/app-root/src/configuration/rendered/:Z"
+    networks:
+      - app-net
+
+
+  _render_data_pipeline_config:
+    image: "${GC_DATA_PIPELINES_IMAGE}"
+    user: root
+    volumes:
+      - "data-pipelines-rendered-config:/opt/app-root/src/configuration/rendered/:Z"
+    entrypoint:
+      - "/bin/bash"
+      - "-o"
+      - "pipefail"
+      - "-o"
+      - "errexit"
+      - "-o"
+      - "nounset"
+      - "-c"
+    command:
+      - |
+        python -m configuration init --app-config docker --elasticsearch-config local docker
+    networks:
+      - app-net
+    
+
+  _render_data_pipeline_config_asrs:
+      image: "${GC_DATA_PIPELINES_IMAGE}"
+      user: root
+      volumes:
+        - "data-pipelines-rendered-config:/opt/app-root/src/configuration/rendered/:Z"
+      entrypoint:
+        - "/bin/bash"
+        - "-o"
+        - "pipefail"
+        - "-o"
+        - "errexit"
+        - "-o"
+        - "nounset"
+        - "-c"
+      command:
+        - |
+          python -m configuration init --app-config docker --elasticsearch-config local_asrs docker
+          python -m common.document_parser asrs-to-json -s "common/data/asrs/raw" -d "common/data/asrs/processed"
+          python -m dataPipelines.gc_ingest pipelines asrs \
+            ingest \
+            --skip-neo4j-update="no" \
+            --skip-snapshot-backup="yes" \
+            --skip-db-backup="yes" \
+            --skip-db-update="yes" \
+            --current-snapshot-prefix="bronze/gamechanger/" \
+            --backup-snapshot-prefix="bronze/gamechanger/backup/" \
+            --db-backup-base-prefix="bronze/gamechanger/backup/db/" \
+            --load-archive-base-prefix="bronze/gamechanger/load-archive/" \
+            --bucket-name="advana-data-zone" \
+            --job-dir="jobs" \
+            --batch-timestamp="2022-02-10T10:55:02" \
+            --index-name="gamechanger" \
+            --max-threads="4" \
+            --max-threads-neo4j="1" \
+            --max-ocr-threads="2" \
+            --max-s3-threads="2" \
+            local \
+            --local-raw-ingest-dir="common/data/asrs/raw" \
+            --local-parsed-ingest-dir="common/data/asrs/processed"
+      networks:
+        - app-net
+
+
+  _render_data_pipeline_config_im:
+      image: "${GC_DATA_PIPELINES_IMAGE}"
+      user: root
+      volumes:
+        - "data-pipelines-rendered-config:/opt/app-root/src/configuration/rendered/:Z"
+      entrypoint:
+        - "/bin/bash"
+        - "-o"
+        - "pipefail"
+        - "-o"
+        - "errexit"
+        - "-o"
+        - "nounset"
+        - "-c"
+      command:
+        - |
+          python -m configuration init --app-config docker --elasticsearch-config local_im docker
+          python -m common.document_parser im-to-json -s "common/data/im/raw" -d "common/data/im/processed"
+          python -m dataPipelines.gc_ingest pipelines im \
+            ingest \
+            --skip-neo4j-update="no" \
+            --skip-snapshot-backup="yes" \
+            --skip-db-backup="yes" \
+            --skip-db-update="yes" \
+            --current-snapshot-prefix="bronze/gamechanger/" \
+            --backup-snapshot-prefix="bronze/gamechanger/backup/" \
+            --db-backup-base-prefix="bronze/gamechanger/backup/db/" \
+            --load-archive-base-prefix="bronze/gamechanger/load-archive/" \
+            --bucket-name="advana-data-zone" \
+            --job-dir="jobs" \
+            --batch-timestamp="2022-02-10T10:55:02" \
+            --index-name="gamechanger" \
+            --max-threads="4" \
+            --max-threads-neo4j="1" \
+            --max-ocr-threads="2" \
+            --max-s3-threads="2" \
+            local \
+            --local-raw-ingest-dir="common/data/im/raw" \
+            --local-parsed-ingest-dir="common/data/im/processed"
+      networks:
+        - app-net

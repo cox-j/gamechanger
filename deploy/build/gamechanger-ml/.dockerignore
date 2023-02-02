@@ -1,0 +1,12 @@
+../dataPipelines
+../.git
+../out
+.git/
+src/DrQA/data/
+experimental/
+gamechangerml/models/*.gz
+gamechangerml/models/sent*
+gamechangerml/models/transformer*
+gamechangerml/models/qexp*
+gamechangerml/corpus
+corpus_index

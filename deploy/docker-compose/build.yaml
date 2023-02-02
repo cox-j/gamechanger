@@ -1,0 +1,37 @@
+services:
+  _build_web_image:
+    image: "${GC_WEB_IMAGE}"
+    build:
+      context: "./deploy/build/gamechanger-web/"
+      dockerfile: "./Dockerfile.prod"
+      args:
+        APP_UID: 1000
+        APP_GID: 1000
+        NPM_AUTH_TOKEN: "${NPM_AUTH_TOKEN?}"
+    entrypoint:
+      - echo
+      - "[INFO] Web image build completed."
+    command: []
+
+  _build_data_pipelines_image:
+    image: "${GC_DATA_PIPELINES_IMAGE}"
+    build:
+      context: "./deploy/build/gamechanger-data/"
+      dockerfile: "./dev_tools/docker/k8s/rhel8.Dockerfile"
+    entrypoint:
+      - echo
+      - "[INFO] Data Pipelines image build completed."
+    command: []
+
+  _build_gamechanger_ml_image:
+    image: "${GC_ML_API_IMAGE}"
+    build:
+      context: "./deploy/build/gamechanger-ml/"
+      dockerfile: "./gamechangerml/api/fastapi/cpu.mlapp.Dockerfile"
+      args:
+        APP_UID: 1001
+        APP_GID: 1001
+    entrypoint:
+      - echo
+      - "[INFO] ML API image build completed."
+    command: []
